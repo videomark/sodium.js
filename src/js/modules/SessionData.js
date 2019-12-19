@@ -6,6 +6,7 @@ import msgpack from "msgpack-lite";
 import Config from "./Config";
 import VideoData from "./VideoData";
 import { useStorage } from "./Storage";
+import { saveTransferSize } from "./StatStorage";
 import { version } from "../../../package.json";
 
 export default class SessionData {
@@ -21,6 +22,7 @@ export default class SessionData {
     this.sequence = 0;
     this.video = [];
     this.latest_qoe_update_count = 0;
+    this.hostToIp = {};
   }
 
   async init() {
@@ -54,6 +56,9 @@ export default class SessionData {
     this.session_id = session.id;
     // eslint-disable-next-line no-console
     console.log(`VIDEOMARK: New Session start Session ID[${this.session_id}]`);
+
+    // eslint-disable-next-line no-underscore-dangle
+    this._location_ip();
   }
 
   get_session_id() {
@@ -335,6 +340,7 @@ export default class SessionData {
       end_time: -1,
       thumbnail: video.get_thumbnail(),
       title: video.get_title(),
+      transfer_size: video.transfer_size,
       log: [
         ...(storage.cache.log || []).filter(a => !("qoe" in a)),
         ...video.get_latest_qoe(),
@@ -351,6 +357,8 @@ export default class SessionData {
         .sort(({ date: ad }, { date: bd }) => ad - bd)
         .slice(-Config.max_log)
     });
+
+    await saveTransferSize(video.transfer_diff);
   }
 
   /**
@@ -361,21 +369,51 @@ export default class SessionData {
     this.endTime = performance.now();
     this.sequence += 1;
 
-    return {
+    let param = {
       version: this.version,
       date: new Date().toISOString(),
       startTime: this.startTime,
       endTime: this.endTime,
       session: this.session_id,
       location: window.location.href,
+      locationIp: this.hostToIp[new URL(window.location.href).host],
       userAgent: this.userAgent,
-      appVersion: this.appVersion,
       sequence: this.sequence,
       video: [video.get()],
       resource_timing: []
     };
+
+    let netinfo = {};
+    ["downlink", "downlinkMax", "effectiveType", "rtt", "type", "apn", "plmn", "sim"].forEach(e => {
+      if (navigator.connection[e] === Infinity) {
+        netinfo[e] = Number.MAX_VALUE;
+      } else if (navigator.connection[e] === -Infinity) {
+        netinfo[e] = Number.MIN_VALUE;
+      } else {
+        netinfo[e] = navigator.connection[e];
+      }
+    });
+    param["netinfo"] = netinfo;
+
+    return param;
   }
 
+  // eslint-disable-next-line camelcase
+  async _location_ip() {
+    const url = new URL(window.location.href);
+    const ip = await new Promise((resolve) => {
+      const listener = (event) => {
+        if (event.data.host !== url.host || event.data.type !== "CONTENT_SCRIPT_JS") return;
+        window.removeEventListener("message", listener)
+        resolve(event.data.ip);
+      }
+      window.addEventListener("message", listener)
+      window.postMessage({ host: url.host, method: "get_ip", type: "FROM_SODIUM_JS" })
+    });
+    this.hostToIp[url.host] = ip;
+  }
+
+  // eslint-disable-next-line camelcase
   static event_wait(elm, type, ms) {
     let eventResolver;
     const event = new Promise(resolve => {

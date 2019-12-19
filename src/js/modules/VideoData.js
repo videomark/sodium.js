@@ -75,6 +75,10 @@ export default class VideoData {
     });
 
     this.video_handler.add_cm_listener(args => this._cm_listener(args));
+
+    this.transfer_size = 0;
+    this.transfer_diff = 0;
+    this.resources_length = 0;
   }
 
   get_video_id() {
@@ -148,6 +152,10 @@ export default class VideoData {
     const now = Date.now();
     const { waiting, pause } = this.timing;
     return { waiting: waiting(now), pause: pause(now) };
+  }
+
+  get_codec_info() {
+    return this.video_handler.get_codec_info();
   }
 
   set_quality(bitrate) {
@@ -245,23 +253,26 @@ export default class VideoData {
 
     const quality = this.get_quality();
     this.playback_quality.push(quality);
+
+    if (this.is_main_video()) {
+      let resources = performance.getEntriesByType("resource").slice();
+      let now_resources_length = resources.length;
+      // youtubeでは、ページを開いた直後はresourceの数が増減する現象があるので、減った場合は最初から数え直す
+      if (now_resources_length < this.resources_length) this.resources_length = 0;
+      this.transfer_diff = resources.slice(this.resources_length).reduce((a, c) => a + c.transferSize, 0);
+      this.transfer_size += this.transfer_diff;
+      this.resources_length = now_resources_length;
+    }
   }
 
   /**
    *
    */
   get() {
-    const id_str = this.video_elm.getAttribute("id");
-    const id_val = id_str && id_str.length !== 0 ? id_str : "";
-    const class_val = Array.from(this.video_elm.classList);
-
     const val = {
       property: {
         uuid: this.uuid,
-        id: id_val,
         viewCount: this.video_handler.get_view_count(),
-        class: class_val,
-        src: this.video_elm.src,
         domainName: this.video_handler.get_segment_domain(),
         width: this.video_elm.width,
         height: this.video_elm.height,
@@ -282,6 +293,9 @@ export default class VideoData {
       play_list_info: this.video_handler.get_play_list_info(),
       throughput_info: this.video_handler.get_throughput_info()
     };
+    if (this.video_elm.src && !this.video_elm.src.match(/^blob:/i)) {
+      val["property"]["src"] = this.video_elm.src;
+    }
     Config.get_event_type_names().forEach(s => {
       val[`event_${s}`] = [];
       val[`event_${s}_delta`] = [];

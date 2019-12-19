@@ -146,7 +146,7 @@ class YouTubeTypeHandler {
     }
 
     /*
-     * ytd-palyerにsodium用のフィールド追加
+     * ytd-playerにsodium用のフィールド追加
      * 初期化が終わっていない段階で値にアクセスした場合エラー値を返す
      */
     // eslint-disable-next-line camelcase
@@ -211,8 +211,8 @@ class YouTubeTypeHandler {
                 s
                     .split('&')
                     .forEach(ss => {
-                        const [key, value] = ss.split('=');
-                        l[key] = value;
+                        const [key, ...values] = ss.split('=');
+                        l[key] = decodeURIComponent(values.join('='));
                     });
                 ret.push(l);
             })
@@ -221,17 +221,27 @@ class YouTubeTypeHandler {
 
     // eslint-disable-next-line camelcase
     static get_play_list_info() {
-        const formats = YouTubeTypeHandler.get_playable_video_format_list();
-        return formats
-            .map(e => ({
-                representationId: e.itag,
-                bps: Number.parseInt(e.bitrate, 10),
-                videoWidth: Number.parseInt(e.size.split('x')[0], 10),
-                videoHeight: Number.parseInt(e.size.split('x')[1], 10),
-                fps: Number.parseInt(e.fps, 10),
-                chunkDuration: YouTubeTypeHandler.DEFAULT_SEGMENT_DURATION,
-                serverIp: new URL(e.url).host
-            }))
+        try {
+            const formats = YouTubeTypeHandler.convert_adaptive_formats(YouTubeTypeHandler.sodiumAdaptiveFmts);
+            return formats
+                .map(e => {
+                    const { groups: { container, codec } }
+                        = /(?<=video\/|audio\/)(?<container>\S+);(?:\S+)"(?<codec>\S+)"/.exec(e.type);
+                    return {
+                        representationId: e.itag,
+                        bps: Number.parseInt(e.bitrate, 10),
+                        videoWidth: e.size ? Number.parseInt(e.size.split('x')[0], 10) : -1,
+                        videoHeight: e.size ? Number.parseInt(e.size.split('x')[1], 10) : -1,
+                        container,
+                        codec,
+                        fps: e.fps ? Number.parseInt(e.fps, 10) : -1,
+                        chunkDuration: YouTubeTypeHandler.DEFAULT_SEGMENT_DURATION,
+                        serverIp: new URL(e.url).host
+                    };
+                })
+        } catch {
+            return [];
+        }
     }
 
     // eslint-disable-next-line camelcase
@@ -312,6 +322,25 @@ class YouTubeTypeHandler {
             }
             return acc;
         }, []);
+    }
+
+    // eslint-disable-next-line camelcase
+    static get_codec_info() {
+        const player = document.querySelector('#movie_player');
+        const stats = player.getVideoStats();
+        const list = YouTubeTypeHandler.get_play_list_info();
+        const video = list.find(e => e.representationId === stats.fmt);
+        const audio = list.find(e => e.representationId === stats.afmt);
+        return {
+            video: {
+                container: video ? video.container : null,
+                codec: video ? video.codec : null
+            },
+            audio: {
+                container: audio ? audio.container : null,
+                codec: audio ? audio.codec : null
+            }
+        };
     }
 
     constructor(elm) {

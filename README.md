@@ -120,18 +120,33 @@ ChromeExtension/sodium.js
 
 1送信毎のデータ
 
-| 項目              | 値                                    |
-| --------------- | ------------------------------------ |
-| version         | sodium.jsのバージョン(1.1.0)               |
-| date            | 送信日時(Date.now())                     |
-| startTime       | データ収集開始時間(DOMHighResTimeStamp, 初回は0) |
-| endTime         | データ収集終了時間(DOMHighResTimeStamp)       |
-| session         | セッションID(UUID)                        |
-| location        | window.location.href                 |
-| userAgent       | ユーザーエージェント                           |
-| appVersion      | navigator.appVersion                 |
-| sequence        | 同一セッション内のシーケンス番号(0から連番)              |
-| resource_timing | 未使用                                  |
+| 項目                    | 値                                    |
+| --------------------- | ------------------------------------ |
+| version               | sodium.jsのバージョン(1.1.0)               |
+| date                  | 送信日時(Date.now())                     |
+| startTime             | データ収集開始時間(DOMHighResTimeStamp, 初回は0) |
+| endTime               | データ収集終了時間(DOMHighResTimeStamp)       |
+| session               | セッションID(UUID)                        |
+| location              | window.location.href                 |
+| locationIp            | locationのIPアドレス                      |
+| userAgent             | ユーザーエージェント                           |
+| sequence              | 同一セッション内のシーケンス番号(0から連番)              |
+| resource_timing       | -                                    |
+
+### netinfo
+Network Information API より取得した情報を送信する  
+http://wicg.github.io/netinfo/#networkinformation-interface
+
+| 項目                    | 値                                    |
+| --------------------- | ------------------------------------ |
+| downlink      | 下り速度(Mbps)<br>※ Videomark Browser または隠しオプション enable-experimental-web-platform-features 有効時                           |
+| downlinkMax   | 最大下り速度(Mbps)                         |
+| effectiveType | 有効なタイプ                               |
+| rtt           | RTT                                  |
+| type          | デバイスがネットワーク通信に使用している接続の種類<br>※ Videomark Browser または隠しオプション enable-experimental-web-platform-features 有効時            |
+| apn           | アクセスポイント<br>※ Videomark Browser 独自拡張                            |
+| plmn          | ルーティングエリア<br>※ Videomark Browser 独自拡張                           |
+| sim           | SIM<br>※ Videomark Browser 独自拡張                                 |
 
 ### video
 
@@ -144,10 +159,8 @@ videoの属性情報
 | 項目                  | 値                                                 |
 | ------------------- | ------------------------------------------------- |
 | uuid                | videoを識別するためのUUID                                 |
-| id                  | videoタグのid属性                                      |
-| class               | videoタグのclass属性                                   |
 | viewCount           | 対象のvideoがYouTubeの場合、videoの再生回数　他のサイトや取得ができない場合 -1 |
-| src                 | videoタグのsrc属性                                     |
+| src                 | videoタグのsrc属性<br>※ blob URL の場合は除外                                    |
 | domainName          | videoのセグメント配布ドメイン                                 |
 | width               | videoタグの表示幅                                       |
 | height              | videoタグの表示高さ                                      |
@@ -192,7 +205,8 @@ videoの属性情報
 | end                     | ダウンロード終了時刻          |
 | startUnplayedBufferSize | ダウンロード開始時未再生バッファ    |
 | endUnplayedBufferSize   | ダウンロード終了時未再生バッファ    |
-| bps                     | ビットレート              |
+| bitrate                 | ビットレート              |
+| representationId        | Representation ID   |
 
 #### play_list_info
 
@@ -204,6 +218,8 @@ videoの属性情報
 | videoHeight      | videoの高さ      |
 | fps              | フレームレート       |
 | chunkDuration    | チャンクの再生時間     |
+| container        | コンテナ          |
+| codec            | コーデック         |
 | serverIp         | チャック配布元(FQDN) |
 
 #### Event
@@ -242,7 +258,6 @@ QoEサーバーに対応するために以下のデータを追加した。
 | filed                                | QoE                                                 | detail                       |
 | ------------------------------------ | --------------------------------------------------- | ---------------------------- |
 | userAgent                            | requestNotificationBasicInformation.osInfo          | ユーザーエージェント                   |
-| appVersion                           | requestNotificationBasicInformation.osInfo          | クライアントバージョン                  |
 | video.property.mediaSize             | requestNotificationBasicInformation.mediaSize       | videoの再生時間(秒)                |
 | video.property.domainName            | requestNotificationViewingInformation.domainName    | videoのセグメント配布ドメイン            |
 | video.playback_quality.bitrate       | requestNotificationQoeInformation.bitrateHistory    | ビットレート                       |
@@ -259,8 +274,6 @@ Paraviは、Video.js + Shaka Player で実装されている。上記のフィ�
 
 -   userAgent
     -   window.navigator.userAgentの値
--   appVersion
-    -   window.navigator.appVersion
 -   video.property.mediaSize
     -   Class: videojs.Player duration()
 -   video.property.domainName
@@ -288,8 +301,6 @@ TVerは、Video.jsで実装されている。上記のフィールドの値は�
 
 -   userAgent
     -   window.navigator.userAgentの値
--   appVersion
-    -   window.navigator.appVersion
 -   video.property.mediaSize
     -   Class: videojs.Player duration()
 -   video.property.domainName
@@ -319,8 +330,6 @@ YouTubeのiFrameAPIを使用して上記のフィールドの値を取得して�
 
 -   userAgent
     -   window.navigator.userAgentの値
--   appVersion
-    -   window.navigator.appVersion
 -   video.property.mediaSize
     -   getDuration()
 -   video.property.domainName
