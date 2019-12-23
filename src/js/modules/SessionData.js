@@ -98,6 +98,7 @@ export default class SessionData {
         const video_id = uuidv4();
         try {
           const new_video = new VideoData(elm, video_id);
+          new_video.read_settings();
           /* eslint-disable no-console */
           console.log(`VIDEOMARK: new video found uuid[${video_id}]`);
           this.video.push(new_video);

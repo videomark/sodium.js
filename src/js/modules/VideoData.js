@@ -79,6 +79,24 @@ export default class VideoData {
     this.transfer_size = 0;
     this.transfer_diff = 0;
     this.resources_length = 0;
+
+    this.enable_quality_control = false;
+    this.max_resolution = 2160;
+    this.max_bitrate = 20 * 1024 * 1024; // 20Mbps
+  }
+
+  async read_settings() {
+    const resolution_control = await Config.get_resolution_control();
+    if (resolution_control) this.max_resolution = resolution_control;
+    this.enable_quality_control |= Boolean(resolution_control);
+
+    const bitrate_control = await Config.get_bitrate_control();
+    if (bitrate_control) this.max_bitrate = Math.min(this.max_bitrate, bitrate_control);
+    this.enable_quality_control |= Boolean(bitrate_control);
+
+    const quota_bitrate = await Config.get_quota_bitrate();
+    if (quota_bitrate) this.max_bitrate = Math.min(this.max_bitrate, quota_bitrate);
+    this.enable_quality_control |= Boolean(quota_bitrate);
   }
 
   get_video_id() {

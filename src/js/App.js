@@ -68,6 +68,7 @@ import ParaviTypeHandler from "./modules/ParaviTypeHandler";
     const video = session.get_main_video();
     if (!(video instanceof VideoData)) return;
     ui.update_status({
+      maxBitrate: video.max_bitrate,
       sessionId: session.get_session_id(),
       videoId: video.get_video_id()
     });
