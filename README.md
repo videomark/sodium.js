@@ -1,5 +1,4 @@
-![build](https://github.com/videomark/sodium.js/workflows/build/badge.svg?branch=master)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/2557c75c-0b3c-450b-b4dc-0f7b9fda88dd/deploy-status)](https://app.netlify.com/sites/sodium-js/deploys)
+**NOTICE**: このリポジトリは、2020年5月27日に [videomark/videomark](https://github.com/videomark/videomark) に移行したためアーカイブされました。引き続き [videomark/videomark](https://github.com/videomark/videomark) にて開発は続けられます。
 
 # sodium.js
 
